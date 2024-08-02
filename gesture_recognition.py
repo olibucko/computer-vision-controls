@@ -15,10 +15,13 @@ mp_drawing_styles = mp.solutions.drawing_styles
 # Global vars to calculate FPS
 COUNTER, FPS = 0, 0
 START_TIME = time.time()
+LANDMARKS = []
 
 def run (model: str, num_hands: int, min_hand_detection_confidence: float,
          min_hand_presence_confidence: float, min_tracking_confidence: float,
          camera_id: int, width: int, height: int) -> None:
+  
+  global LANDMARKS
   
   # Capture video and set parameters
   cap = cv2.VideoCapture(camera_id)
@@ -88,7 +91,10 @@ def run (model: str, num_hands: int, min_hand_detection_confidence: float,
       current_frame = image
 
       if recognition_result_list:
-        # Draw landmarks and place text
+
+        # Send out the recognition result list to the global variable for processing
+        LANDMARKS = recognition_result_list
+
         for hand_index, hand_landmarks in enumerate(
           recognition_result_list[0].hand_landmarks):
           # Bounding box calculation
@@ -109,7 +115,8 @@ def run (model: str, num_hands: int, min_hand_detection_confidence: float,
             score = round(gesture[0].score, 2)
             result_text = f'{category_name} ({score})'
 
-        print(category_name + " " + str(score))
+        # print(category_name + " " + str(score)) ////// APPEND THIS TO LANDMARKS variable too.
+        # LANDMARKS = recognition_result_list
         recognition_result_list.clear()
 
     if image is not None:
