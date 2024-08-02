@@ -2,7 +2,7 @@ import threading
 import subprocess
 
 def run_script(name):
-    subprocess.run(["python3", name])
+    subprocess.run(["python3", name], capture_output=True)
 
 # Set up threads
 recognition_thread = threading.Thread(target=run_script, args=("gesture_recognition.py",))

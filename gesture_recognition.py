@@ -91,32 +91,59 @@ def run (model: str, num_hands: int, min_hand_detection_confidence: float,
       current_frame = image
 
       if recognition_result_list:
+        # Variables for program data output
+        category_name = None 
+        coordinates = None
 
-        # Send out the recognition result list to the global variable for processing
-        LANDMARKS = recognition_result_list
-
+        # Access landmarks via enumeration. As per MediaPipe spec.
         for hand_index, hand_landmarks in enumerate(
           recognition_result_list[0].hand_landmarks):
-          # Bounding box calculation
-          x_min = min([landmark.x for landmark in hand_landmarks])
-          y_min = min([landmark.y for landmark in hand_landmarks])
-          y_max = max([landmark.y for landmark in hand_landmarks])
-
-          # Convert normalized coords to pixels
-          frame_height, frame_width = current_frame.shape[:2]
-          x_min_px = int(x_min * frame_width)
-          y_min_px = int(y_min * frame_height)
-          y_max_px = int(y_max * frame_height)    
-
+          
           # Get gesture classification results
           if recognition_result_list[0].gestures:
             gesture = recognition_result_list[0].gestures[hand_index]
             category_name = gesture[0].category_name
             score = round(gesture[0].score, 2)
-            result_text = f'{category_name} ({score})'
 
-        # print(category_name + " " + str(score)) ////// APPEND THIS TO LANDMARKS variable too.
-        # LANDMARKS = recognition_result_list
+        output_coords = []
+        i = 0
+        
+        # Drilled down to single list of coordinates. Use try, except to avoid errors.
+        # recognition_result_list[0].hand_landmarks[0][0].x, drop one of the [0] selectors when looping because it is implied.
+        # DATA FORMAT: NormalizedLandmark(x=value, y=value, z=value, visibility=value, presence=value)
+        try: 
+          for data in recognition_result_list[0].hand_landmarks[0]:
+            vector = []
+            vector.append(data.x)
+            vector.append(data.y)
+
+            id = i
+            i += 1
+
+            output_coords.append({id:vector})
+          
+          print(output_coords)
+        except:
+          print("Could not perform.")
+
+        # Prepare data for output
+        # final_data = []
+
+        # Output data for use in other applications
+        # try:
+        #   final_data.append(category_name)
+        # except UnboundLocalError:
+        #   final_data.append("None")
+        
+        # try:
+        #   final_data.append(coordinates)
+        # except UnboundLocalError:
+        #   final_data.append("None")
+      
+        # f = open("landmarks.txt", "w")
+        # f.write(str(final_data))
+        # f.close()
+
         recognition_result_list.clear()
 
     if image is not None:

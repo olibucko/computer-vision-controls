@@ -31,5 +31,12 @@ def update_data(dt):
         coords[i].x = random.randint(0,600)
         coords[i].y = random.randint(0,600)
 
-# pyglet.clock.schedule_interval(update_data, 0.05)
+        f = open("landmarks.txt", "r")
+        raw_data = f.read()
+        f.close()
+
+        print(raw_data)
+        
+
+pyglet.clock.schedule_interval(update_data, 0.05)
 pyglet.app.run()
