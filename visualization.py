@@ -1,7 +1,8 @@
 # First step. Create function to visualise coordinate.
 import pyglet
 from pyglet import shapes
-import random
+import json
+import shutil
 
 # Construct viewing window
 window = pyglet.window.Window()
@@ -10,11 +11,11 @@ window = pyglet.window.Window()
 batch = pyglet.graphics.Batch()
 
 #Coordinates dictionary.
-coords = {}
+shapes_drawn = {}
 
 #Populate dictionary. 
 for i in range(0,21):
-    coords.update({i:shapes.Circle(x=i + i * 30, y=i + i * 30, radius=5, color=(50, 225, 30), batch=batch)})
+    shapes_drawn.update({i:shapes.Circle(x=i + i * 30, y=i + i * 30, radius=5, color=(50, 225, 30), batch=batch)})
 
 # Start the window
 @window.event
@@ -24,19 +25,31 @@ def on_draw():
 
 # # Event loop
 def update_data(dt):
-    new_coords = []
-    for i in range(0,21):
 
-        # Feed application live data
-        coords[i].x = random.randint(0,600)
-        coords[i].y = random.randint(0,600)
+    # Obtain raw data from file
+    shutil.copyfile("landmarks.json", "visualise_data.json")
 
-        f = open("landmarks.txt", "r")
-        raw_data = f.read()
-        f.close()
+    f = open("visualise_data.json", "r")
+    raw_data = json.load(f)
+    f.close()
+    
+    # Name of gesture.
+    gesture = raw_data[0]
 
-        print(raw_data)
+    # Dictionary of coordinates.
+    # Format as {"Reference ID": [X-Value, Y-Value], "Reference ID": [X-Value, Y-Value]}
+    coordinates = raw_data[1]
+
+    # Coordinates are between 0-1. Scale up to representable pixel size.
+    scale_factor = 650
+
+    for key in coordinates:
         
+        value = coordinates[key]
 
-pyglet.clock.schedule_interval(update_data, 0.05)
+        # Update each shape with new coordinates
+        shapes_drawn[int(key)].x = value[0] * scale_factor
+        shapes_drawn[int(key)].y = value[1] * scale_factor
+
+pyglet.clock.schedule_interval(update_data, 0.25)
 pyglet.app.run()

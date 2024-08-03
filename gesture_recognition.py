@@ -8,6 +8,8 @@ import mediapipe as mp
 from mediapipe.tasks import python
 from mediapipe.tasks.python import vision
 from mediapipe.framework.formats import landmark_pb2
+
+import json
 # mp_hands = mp.solutions.hands
 # mp_drawing = mp.solutions.drawing_utils
 # mp_drawing_styles = mp.solutions.drawing_styles
@@ -115,11 +117,11 @@ def run (model: str, num_hands: int, min_hand_detection_confidence: float,
             vector.append(data.x)
             vector.append(data.y)
 
-            id = i
+            id = int(i)
             i += 1
 
             # Format -> ID : [0.57253536 (x coordinate), 0345463242 (y coordinate)]
-            coords.update({id:vector})
+            coords.update({int(id):vector})
           
           print(coords)
         except:
@@ -137,9 +139,10 @@ def run (model: str, num_hands: int, min_hand_detection_confidence: float,
         except UnboundLocalError:
           final_output_data.append("None")
       
-        f = open("landmarks.txt", "w")
-        f.write(str(final_output_data))
-        f.close()
+        with open("landmarks.json", "w") as fout:
+         json.dump(final_output_data, fout)
+        
+        fout.close()
 
         recognition_result_list.clear()
 
