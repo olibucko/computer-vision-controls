@@ -91,9 +91,6 @@ def run (model: str, num_hands: int, min_hand_detection_confidence: float,
       current_frame = image
 
       if recognition_result_list:
-        # Variables for program data output
-        category_name = None 
-        coordinates = None
 
         # Access landmarks via enumeration. As per MediaPipe spec.
         for hand_index, hand_landmarks in enumerate(
@@ -105,12 +102,13 @@ def run (model: str, num_hands: int, min_hand_detection_confidence: float,
             category_name = gesture[0].category_name
             score = round(gesture[0].score, 2)
 
-        output_coords = []
-        i = 0
         
-        # Drilled down to single list of coordinates. Use try, except to avoid errors.
-        # recognition_result_list[0].hand_landmarks[0][0].x, drop one of the [0] selectors when looping because it is implied.
+        # To access data use -> recognition_result_list[0].hand_landmarks[0][0].x, drop one of the [0] selectors when looping.
         # DATA FORMAT: NormalizedLandmark(x=value, y=value, z=value, visibility=value, presence=value)
+
+        coords = {}
+        i = 0
+
         try: 
           for data in recognition_result_list[0].hand_landmarks[0]:
             vector = []
@@ -120,29 +118,28 @@ def run (model: str, num_hands: int, min_hand_detection_confidence: float,
             id = i
             i += 1
 
-            output_coords.append({id:vector})
+            # Format -> ID : [0.57253536 (x coordinate), 0345463242 (y coordinate)]
+            coords.update({id:vector})
           
-          print(output_coords)
+          print(coords)
         except:
-          print("Could not perform.")
+          print("Could not perform coordinate extraction.")
+          
+        final_output_data = []
 
-        # Prepare data for output
-        # final_data = []
-
-        # Output data for use in other applications
-        # try:
-        #   final_data.append(category_name)
-        # except UnboundLocalError:
-        #   final_data.append("None")
+        try:
+          final_output_data.append(category_name)
+        except UnboundLocalError:
+          final_output_data.append("None")
         
-        # try:
-        #   final_data.append(coordinates)
-        # except UnboundLocalError:
-        #   final_data.append("None")
+        try:
+          final_output_data.append(coords)
+        except UnboundLocalError:
+          final_output_data.append("None")
       
-        # f = open("landmarks.txt", "w")
-        # f.write(str(final_data))
-        # f.close()
+        f = open("landmarks.txt", "w")
+        f.write(str(final_output_data))
+        f.close()
 
         recognition_result_list.clear()
 
