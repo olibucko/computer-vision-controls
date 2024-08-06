@@ -8,10 +8,6 @@ from mediapipe.tasks.python import vision
 import pyglet
 from pyglet import shapes
 
-# Global variables
-COUNTER, FPS = 0, 0
-START_TIME = time.time()
-
 def gestures (model: str, num_hands: int, min_hand_detection_confidence: float,
          min_hand_presence_confidence: float, min_tracking_confidence: float,
          camera_id: int, width: int, height: int, array) -> None:
@@ -21,22 +17,13 @@ def gestures (model: str, num_hands: int, min_hand_detection_confidence: float,
   cap.set(cv2.CAP_PROP_FRAME_HEIGHT, height)
   cap.set(cv2.CAP_PROP_FRAME_WIDTH, width)
 
-  # Parameters for visualization
-  fps_avg_frame_count = 10
-
   # Variables for recognition logic
   recognition_result_list = []
 
   def save_result(result: vision.GestureRecognizerResult, unused_output_image: mp.Image,
                   timestamp_ms: int):
-    global FPS, COUNTER, START_TIME
-  
-    if COUNTER % fps_avg_frame_count == 0:
-      FPS = fps_avg_frame_count / (time.time() - START_TIME)
-      START_TIME = time.time()
 
     recognition_result_list.append(result)
-    COUNTER += 1
 
   # Start gesture recognizer
   base_options = python.BaseOptions(model_asset_path=model)
@@ -64,7 +51,7 @@ def gestures (model: str, num_hands: int, min_hand_detection_confidence: float,
     h, w = image.shape[:2]
 
     # Scale them down to 1/2
-    s_h, s_w = int(h/2), int(w/2)
+    s_h, s_w = int(h/4), int(w/4)
 
     # Scale the image using 1/2 dimensions
     scaled_image = cv2.resize(image, (s_h, s_w), interpolation=cv2.INTER_LINEAR)
@@ -178,7 +165,7 @@ if __name__ == '__main__':
   recognizer = Process(target=gestures, args=('resources/gesture_recognizer.task', 2, 0.5, 0.5, 0.5, 0, 640, 480, array))
   recognizer.start()
 
-  visualizer = Process(target=visualize, args=(array,))
+  visualizer = Process(target=visualize, args=[array])
   visualizer.start()
 
   recognizer.join()
