@@ -1,4 +1,4 @@
-from multiprocessing import Process, Array
+from multiprocessing import Process, Array, Value
 import sys
 import time
 import cv2
@@ -9,9 +9,12 @@ import pyglet
 from pyglet import shapes
 import pyvolume
 
+# Gesture codes
+gesture_index = {0:"None", 1:"Closed_Fist", 2:"Open_Palm", 3:"Pointing_Up", 4:"Thumb_Down", 5:"Thumb_Up", 6:"Victory", 7:"ILoveYou"}
+
 def gestures (model: str, num_hands: int, min_hand_detection_confidence: float,
          min_hand_presence_confidence: float, min_tracking_confidence: float,
-         camera_id: int, width: int, height: int, array) -> None:
+         camera_id: int, width: int, height: int, array, gesture_code) -> None:
 
   # Capture video and set parameters
   cap = cv2.VideoCapture(camera_id)
@@ -52,7 +55,7 @@ def gestures (model: str, num_hands: int, min_hand_detection_confidence: float,
 
     # Scale image for improved performance
     h, w = image.shape[:2]
-    s_h, s_w = int(h/2), int(w/2)
+    s_h, s_w = int(h), int(w)
     scaled_image = cv2.resize(image, (s_h, s_w), interpolation=cv2.INTER_LINEAR)
 
     # Convert scaled_image to RGB format as needed by MediaPipe framework
@@ -72,9 +75,13 @@ def gestures (model: str, num_hands: int, min_hand_detection_confidence: float,
         # Get gesture classification results
         if recognition_result_list[0].gestures:
           gesture = recognition_result_list[0].gestures[hand_index]
-          category_name = ""
           category_name = gesture[0].category_name
           score = round(gesture[0].score, 2)
+
+          # Assign gesture code to shared memory value
+          for g_code in gesture_index:
+             if gesture_index[g_code] == category_name:
+                gesture_code.value = g_code
 
         # Assign hand coordinates to shared memory array
         i = 0
@@ -84,16 +91,6 @@ def gestures (model: str, num_hands: int, min_hand_detection_confidence: float,
               array[i+1] = landmark.y
               i = i + 2
 
-      # GESTURE CONTROLS DEMO
-      try:
-          if category_name == "Closed_Fist":
-              pyvolume.custom(percent=0)         # MUTE VOLUME
-          elif category_name == "Thumb_Up":
-              pyvolume.custom(percent=60)        # TURN VOLUME BACK UP
-          elif category_name == "None":
-            print("Unrecognized gesture.")
-      except:
-        print("No gesture displayed.")
 
       recognition_result_list.clear()
 
@@ -104,13 +101,13 @@ def gestures (model: str, num_hands: int, min_hand_detection_confidence: float,
     if cv2.waitKey(1) == 27:
         break
     
-    time.sleep(1/60)
+    time.sleep(1/30)
 
   recognizer.close()
   cap.release()
   cv2.destroyAllWindows()
 
-def visualize (array):
+def visualize (array, gesture_code):
   # Construct viewing window
   window = pyglet.window.Window(1280, 720)
   
@@ -167,21 +164,40 @@ def visualize (array):
           i = i + 2
           j = j + 2
 
+      # Assign gesture name to gesture label
+      g_code = gesture_code.value
+      gesture_label.text = gesture_index[g_code]
+
       coordinates = None
 
-  pyglet.clock.schedule_interval(update_data, 1/60)
+  pyglet.clock.schedule_interval(update_data, 1/30)
   pyglet.app.run()
+
+def controls (array, gesture_code):
+   while True:
+      coordinates = array[:]
+      gesture = gesture_index[gesture_code.value]
+
+      print(coordinates)
+
+      time.sleep(1/30)
+
 
 if __name__ == '__main__':
 
   # Define shared memory space between processes
   array = Array('d', range(42))
+  gesture_code = Value('i')
 
-  recognizer = Process(target=gestures, args=('resources/gesture_recognizer.task', 2, 0.5, 0.5, 0.5, 0, 640, 480, array))
+  # Start subprocesses
+  recognizer = Process(target=gestures, args=('resources/gesture_recognizer.task', 2, 0.8, 0.8, 0.8, 0, 640, 480, array, gesture_code))
   recognizer.start()
 
-  visualizer = Process(target=visualize, args=[array])
+  visualizer = Process(target=visualize, args=(array, gesture_code))
   visualizer.start()
+
+  controller = Process(target=controls, args=(array, gesture_code))
+  controller.start()
 
   recognizer.join()
   visualizer.join()
