@@ -1,4 +1,4 @@
-from multiprocessing import Process, Array, Value
+from multiprocessing import Process, Array
 import sys
 import time
 import cv2
@@ -7,7 +7,8 @@ from mediapipe.tasks import python
 from mediapipe.tasks.python import vision
 import pyglet
 from pyglet import shapes
-import ctypes
+
+import pyvolume
 
 def gestures (model: str, num_hands: int, min_hand_detection_confidence: float,
          min_hand_presence_confidence: float, min_tracking_confidence: float,
@@ -93,15 +94,17 @@ def gestures (model: str, num_hands: int, min_hand_detection_confidence: float,
 
         # GESTURE CONTROLS DEMO
         if category_name == "Closed_Fist":
-           print("Control volume")
+           pyvolume.custom(percent=0)         # MUTE CONTROL
+        elif category_name == "Thumb_Up":
+           pyvolume.custom(percent=60)        # TURN VOLUME BACK UP
 
       except:
         print("No hands in frame.")
 
       recognition_result_list.clear()
 
-    if image is not None:
-        cv2.imshow('gesture_recognition', image)          
+    # if image is not None:
+    #     cv2.imshow('gesture_recognition', image)          
 
 
     # Stop the program if the ESC key is pressed.
