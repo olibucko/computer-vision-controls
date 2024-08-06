@@ -1,4 +1,4 @@
-from multiprocessing import Process, Array
+from multiprocessing import Process, Array, Value
 import sys
 import time
 import cv2
@@ -7,6 +7,7 @@ from mediapipe.tasks import python
 from mediapipe.tasks.python import vision
 import pyglet
 from pyglet import shapes
+import ctypes
 
 def gestures (model: str, num_hands: int, min_hand_detection_confidence: float,
          min_hand_presence_confidence: float, min_tracking_confidence: float,
@@ -45,7 +46,7 @@ def gestures (model: str, num_hands: int, min_hand_detection_confidence: float,
     if not success:
       sys.exit("ERROR: Cannot read from webcam.")
     
-    image = cv2.flip(image, 0)
+    image = cv2.flip(image, 1)
 
     # Get dimensions of image
     h, w = image.shape[:2]
@@ -77,13 +78,12 @@ def gestures (model: str, num_hands: int, min_hand_detection_confidence: float,
           score = round(gesture[0].score, 2)
 
       
-      # To access data use -> recognition_result_list[0].hand_landmarks[0][0].x, drop one of the [0] selectors when looping.
+      # DIRECT REFERENCE: recognition_result_list[0].hand_landmarks[0][0].x -> drop one of the [0] selectors when looping.
       # DATA FORMAT: NormalizedLandmark(x=value, y=value, z=value, visibility=value, presence=value)
-
+      # 21 landmarks, 42 total entries for shared array.
       i = 0
-
-      # 21 landmarks, 42 total entries
-      try: 
+      try:
+        # Assign landmark coordinates to shared memory array. 
         for data in recognition_result_list[0].hand_landmarks[0]:
 
           array[i] = data.x
@@ -91,13 +91,18 @@ def gestures (model: str, num_hands: int, min_hand_detection_confidence: float,
           
           i = i + 2
 
+        # GESTURE CONTROLS DEMO
+        if category_name == "Closed_Fist":
+           print("Control volume")
+
       except:
-        print("Could not perform coordinate extraction.")
+        print("No hands in frame.")
 
       recognition_result_list.clear()
 
     if image is not None:
         cv2.imshow('gesture_recognition', image)          
+
 
     # Stop the program if the ESC key is pressed.
     if cv2.waitKey(1) == 27:
@@ -112,17 +117,24 @@ def gestures (model: str, num_hands: int, min_hand_detection_confidence: float,
 def visualize (array):
 
   # Construct viewing window
-  window = pyglet.window.Window()
-
+  window = pyglet.window.Window(1280, 720)
+  
   # Construct graphical batch. For efficient drawing of many shapes.
   batch = pyglet.graphics.Batch()
 
-  #Coordinates dictionary.
+  # Coordinates dictionary.
   shapes_drawn = {}
 
-  #Populate dictionary. 
+  # Populate dictionary. 
   for i in range(0,21):
       shapes_drawn.update({i:shapes.Circle(x=i + i * 30, y=i + i * 30, radius=5, color=(50, 225, 30), batch=batch)})
+
+  # Coordinates are between 0-1. Scale up to representable pixel size.
+  scale_factor = 650
+
+  # Rendering Offset
+  x_offset = 400
+  y_offset= 600
 
   # Start the window
   @window.event
@@ -136,20 +148,18 @@ def visualize (array):
           # List of coordinates
           coordinates = array[:]
 
-          # Coordinates are between 0-1. Scale up to representable pixel size.
-          scale_factor = 650
-
           i = 0
           j = 1
 
-          # Looping 21 times instead
+          # Assign new coordinates to drawn shapes
           for index in shapes_drawn:
             x = coordinates[i] * scale_factor
             y = coordinates[j] * scale_factor
 
-            shapes_drawn[index].x = x
-            shapes_drawn[index].y = y
+            shapes_drawn[index].x = x + x_offset
+            shapes_drawn[index].y = -y + y_offset
 
+            # Prevent out of range errors
             if index <= 20:
               i = i + 2
               j = j + 2
@@ -159,7 +169,7 @@ def visualize (array):
 
 if __name__ == '__main__':
 
-  # Define shared memory spaces between processes
+  # Define shared memory space between processes
   array = Array('d', range(42))
 
   recognizer = Process(target=gestures, args=('resources/gesture_recognizer.task', 2, 0.5, 0.5, 0.5, 0, 640, 480, array))
