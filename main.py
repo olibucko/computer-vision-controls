@@ -85,11 +85,11 @@ def gestures (model: str, num_hands: int, min_hand_detection_confidence: float,
 
         # Assign hand coordinates to shared memory array
         i = 0
-        if hand_landmarks:
-           for landmark in hand_landmarks:
-              array[i] = landmark.x
-              array[i+1] = landmark.y
-              i = i + 2
+        
+        for landmark in hand_landmarks:
+          array[i] = landmark.x
+          array[i+1] = landmark.y
+          i = i + 2
 
 
       recognition_result_list.clear()
@@ -118,7 +118,7 @@ def visualize (array, gesture_code):
   shapes_drawn = {}
 
   # Display what laebl is on the screen
-  gesture_label = pyglet.text.Label('Operational.',
+  gesture_label = pyglet.text.Label('Program running.',
                           font_name='Times New Roman',
                           font_size=24,
                           x=window.width-160, y=window.height-40,
@@ -144,6 +144,7 @@ def visualize (array, gesture_code):
 
   # Event loop
   def update_data(dt):
+
     # Get latest coordinates from share array (if any)
     coordinates = array[:]
 
@@ -168,17 +169,20 @@ def visualize (array, gesture_code):
       g_code = gesture_code.value
       gesture_label.text = gesture_index[g_code]
 
-      coordinates = None
-
   pyglet.clock.schedule_interval(update_data, 1/30)
   pyglet.app.run()
 
 def controls (array, gesture_code):
    while True:
-      coordinates = array[:]
-      gesture = gesture_index[gesture_code.value]
-
-      print(coordinates)
+      # coordinates = array[:]
+      g_code = gesture_code.value
+      
+      # If gesture is recognized
+      if g_code in gesture_index:
+        if g_code == 1:
+          pyvolume.custom(percent=0) # Mute control
+        elif g_code == 5:
+           pyvolume.custom(percent=75) # Volume on control
 
       time.sleep(1/30)
 
@@ -201,3 +205,4 @@ if __name__ == '__main__':
 
   recognizer.join()
   visualizer.join()
+  controller.join()
