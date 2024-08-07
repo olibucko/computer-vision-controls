@@ -6,7 +6,8 @@
 <h2>Helpful Info</h2>
 <p><b>It is recommended to use a Python Virtual Environment.</b></p>
 <p>External Python modules: multiprocessing, cv2, mediapipe, pyglet, pyvolume.</p>
-<p>Tested on Ubuntu 14</p>
+<p>Developed on Python 3.12.3.</p>
+<p>Tested on Ubuntu 24.04 LTS</p>
 
 <h2>Extension Ideas For Later</h2>
 <ul>
